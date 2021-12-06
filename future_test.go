@@ -91,3 +91,35 @@ func TestConcurrentAwaitRejecting(t *testing.T) {
 	assert.Nil(t, value)
 	assert.Equal(t, "rejected", err.Error())
 }
+
+func TestDoubleAwait(t *testing.T) {
+
+	f := NewFuture()
+
+	go func() {
+		time.Sleep(1 * time.Millisecond)
+		f.Resolve("resolved")
+	}()
+
+	value, err := f.Await()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	assert.Equal(t, "resolved", value)
+
+	assert.False(t, f.IsPending())
+	assert.False(t, f.IsRejected())
+	assert.True(t, f.IsResolved())
+
+	value, err = f.Await()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	assert.Equal(t, "resolved", value)
+
+	assert.False(t, f.IsPending())
+	assert.False(t, f.IsRejected())
+	assert.True(t, f.IsResolved())
+}
