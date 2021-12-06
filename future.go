@@ -11,42 +11,51 @@ const (
 	rejected = 2
 )
 
-type Future struct {
-	cond    *sync.Cond
-	status  int8
-	err     error
-	value   interface{}
-	channel chan interface{}
+type Future interface {
+	IsRejected() bool
+	IsResolved() bool
+	IsPending() bool
+	Resolve(value interface{}) error
+	Reject(err error) error
+	MustResolve(value interface{})
+	MustReject(err error)
+	Await() (interface{}, error)
 }
 
-func NewFuture() *Future {
+type defaultFuture struct {
+	cond   *sync.Cond
+	status int8
+	err    error
+	value  interface{}
+}
+
+func NewFuture() Future {
 	lock := &sync.Mutex{}
 	cond := sync.NewCond(lock)
-	channel := make(chan interface{})
 
-	return &Future{cond: cond, status: pending, err: nil, value: nil, channel: channel}
+	return Future(&defaultFuture{cond: cond, status: pending, err: nil, value: nil})
 }
 
-func ResolvedFuture(value interface{}) *Future {
+func ResolvedFuture(value interface{}) Future {
 	future := NewFuture()
 	future.MustResolve(value)
 	return future
 }
 
-func RejectedFuture(err error) *Future {
+func RejectedFuture(err error) Future {
 	future := NewFuture()
 	future.MustReject(err)
 	return future
 }
 
-func (future *Future) MustResolve(value interface{}) {
+func (future *defaultFuture) MustResolve(value interface{}) {
 	err := future.Resolve(value)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (future *Future) Resolve(value interface{}) error {
+func (future *defaultFuture) Resolve(value interface{}) error {
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
 	switch future.status {
@@ -65,14 +74,14 @@ func (future *Future) Resolve(value interface{}) error {
 	}
 }
 
-func (future *Future) MustReject(err error) {
+func (future *defaultFuture) MustReject(err error) {
 	rejectionRerr := future.Reject(err)
 	if rejectionRerr != nil {
 		panic(rejectionRerr)
 	}
 }
 
-func (future *Future) Reject(err error) error {
+func (future *defaultFuture) Reject(err error) error {
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
 	switch future.status {
@@ -91,7 +100,7 @@ func (future *Future) Reject(err error) error {
 	}
 }
 
-func (future *Future) IsResolved() bool {
+func (future *defaultFuture) IsResolved() bool {
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
 	switch future.status {
@@ -106,7 +115,7 @@ func (future *Future) IsResolved() bool {
 	}
 }
 
-func (future *Future) IsPending() bool {
+func (future *defaultFuture) IsPending() bool {
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
 	switch future.status {
@@ -121,7 +130,7 @@ func (future *Future) IsPending() bool {
 	}
 }
 
-func (future *Future) IsRejected() bool {
+func (future *defaultFuture) IsRejected() bool {
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
 	switch future.status {
@@ -136,7 +145,7 @@ func (future *Future) IsRejected() bool {
 	}
 }
 
-func (future *Future) Await() (interface{}, error) {
+func (future *defaultFuture) Await() (interface{}, error) {
 
 	future.cond.L.Lock()
 	defer future.cond.L.Unlock()
