@@ -1,4 +1,4 @@
-# go-future - A (mutext based) future implementation in go.
+# go-future - A (mutex/ condition based) future implementation in go.
 
 ## Usage
 ```
