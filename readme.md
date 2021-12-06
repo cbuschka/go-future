@@ -2,23 +2,30 @@
 
 ## Usage
 ```
-import "github.com/cbuschka/go-future"
+package main
 
-[...]
+import (
+	"fmt"
+	"github.com/cbuschka/go-future"
+	"time"
+)
 
-f := NewFuture()
+func main() {
 
-go func() {
-  time.Sleep(1 * time.Millisecond)
-  f.Resolve("resolved")
-}()
+	f := future.NewFuture()
 
-value, err := f.Await()
-if err != nil {
-  panic(err)
+	go func() {
+		time.Sleep(1 * time.Second)
+		f.MustResolve("resolved")
+	}()
+
+	value, err := f.Await()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Value is '%s'.", value)
 }
-
-fmt.Printf("Value is '%s'.\n", value)
 ```
 
 ## License
