@@ -29,14 +29,21 @@ func NewFuture() *Future {
 
 func ResolvedFuture(value interface{}) *Future {
 	future := NewFuture()
-	_ = future.Resolve(value)
+	future.MustResolve(value)
 	return future
 }
 
 func RejectedFuture(err error) *Future {
 	future := NewFuture()
-	_ = future.Reject(err)
+	future.MustReject(err)
 	return future
+}
+
+func (future *Future) MustResolve(value interface{}) {
+	err := future.Resolve(value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (future *Future) Resolve(value interface{}) error {
@@ -55,6 +62,13 @@ func (future *Future) Resolve(value interface{}) error {
 		return nil
 	default:
 		return fmt.Errorf("invalid status")
+	}
+}
+
+func (future *Future) MustReject(err error) {
+	rejectionRerr := future.Reject(err)
+	if rejectionRerr != nil {
+		panic(rejectionRerr)
 	}
 }
 
